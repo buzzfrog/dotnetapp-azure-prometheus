@@ -3,8 +3,11 @@ This document outline a test to use Kind as the local cluster, and in combinatio
 with Prometheus and Azure Arc for Kubernetes, get metrics to Azure Monitor.
 
 ## Prerequisites
-* Kind
+* [Kind](https://kind.sigs.k8s.io/)
 * az (with arc extensions)
+```
+az extension add --name connectedk8s
+```
 
 ## Installation
 1. Create a new Kind cluster
@@ -36,22 +39,42 @@ helm install prometheus-contoso prometheus-community/prometheus
 az connectedk8s connect --name contoso --resource-group contoso-rg
 ```
 
-5. Enable Azure Monitor for containers extension
+5. Create a Log Analytics Workspace to store our metrics
 ```
-az k8s-extension create --name azuremonitor-containers --cluster-name contoso --resource-group contoso-rg --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers
+az monitor log-analytics workspace create -g contoso-rg -n contoso-log -o json --query "id"
+```
+
+6. Enable Azure Monitor for containers extension
+```
+az k8s-extension create --name azuremonitor-containers --cluster-name contoso --resource-group contoso-rg --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=<id-from-above-command>
 ```
 When this command is completed, wait 5-10 minutes before any metrics is displayed in Azure Portal.
 
  ![insights-metrics](./assets/azure-monitor.png)
 
-6. Deploy our application (we use a predefined image in docker hub)
+7. Deploy our application (we use a predefined image in docker hub)
 ```
 kubectl apply -f ./deploy/dep.yaml
 ```
 
-7. Update Prometheus to get metrics from our application
-```bash
+8. Update Prometheus to get metrics from our application
+```
 kubectl apply -f Application/manifests/container-azm-ms-agentconfig.yaml
 ```
 
-8. Do port forwarding to our application
+9. Do port forwarding to our application
+```
+# get pod name
+kubectl get po -l app=milkyway-sample
+kubectl port-forward <pod-name> 8080:8080
+```
+10. Open browser to http://localhost:8080 and change pages to create some metrics
+
+11. Do a KQL query
+```
+InsightsMetrics
+| where Name == "prom_counter_request_total"
+| where parse_json(Tags).method == "GET"
+| extend path = parse_json(Tags).path
+```
+![insights-metrics](./assets/insights-metrics2.png)
