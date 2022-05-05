@@ -14,7 +14,7 @@ all metrics data, and then enable Azure Monitor by installing the Container Insi
 
 We deploy an example application and enable Container Insight Agent to scrap metrics from our application. By using our application we create new metrics.
 
-Now we can go to our Azure Portal and the blade for our Azure Arc view of our cluster and in the Insight view
+Now we can go to our Azure Portal and the blade for our Azure Arc view of our cluster and in the Log view
 we can query our metrics.
 
 ## Prerequisites
@@ -37,7 +37,6 @@ kind create cluster --name contoso
 
 2. Install Prometheus (optional?)
 ```
-
 helm repo add stable https://charts.helm.sh/stable
 
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -64,9 +63,10 @@ az connectedk8s connect --name contoso --resource-group contoso-rg
 az monitor log-analytics workspace create -g contoso-rg -n contoso-log -o json --query "id"
 ```
 
-6. Enable Azure Monitor for containers extension
+6. Enable Azure Monitor for containers extension (NOTE: I had problem running this in bash, 
+work find in powershell. Need to investigate.)
 ```
-az k8s-extension create --name azuremonitor-containers --cluster-name contoso --resource-group contoso-rg --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=<id-from-above-command>
+az k8s-extension create --name azuremonitor-containers --cluster-name contoso --resource-group contoso-rg --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=<id-from-above-command-including-qutation-mark>
 ```
 When this command is completed, wait 5-10 minutes before any metrics is displayed in Azure Portal.
 
